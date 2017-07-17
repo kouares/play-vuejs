@@ -1,0 +1,45 @@
+### PlayFramework ###
+# Ignore Play! working directory #
+bin/
+/db
+.eclipse
+/lib/
+/logs/
+/modules
+/project/target
+/target
+tmp/
+test-result
+server.pid
+*.eml
+/dist/
+.cache
+.cache-tests
+
+### Scala ###
+*.class
+*.log
+
+# sbt specific
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# idea default ignore
+logs
+target
+/.idea
+/.idea_modules
+/.classpath
+/.project
+/.settings
+/RUNNING_PID
+
+# vs code specific
+.ensime_cache/
+.ensime
