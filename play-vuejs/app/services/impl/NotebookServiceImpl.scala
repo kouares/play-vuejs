@@ -3,7 +3,7 @@ package services.impl
 import javax.inject.Inject
 
 import controllers.forms.NotebookForm.NotebookForm
-import models.Notebook
+import models.{Notebook, TagMst}
 import modules.AppExecutionContext
 import services.NotebookService
 
@@ -14,49 +14,58 @@ import org.joda.time.DateTime
 /**
   * Created by koichi on 2017/07/17.
   */
-class NotebookServiceImpl @Inject()(implicit ec: AppExecutionContext) extends NotebookService with SQLSyntaxSupport[Notebook] {
+class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMappingServiceImpl: TagMappingServiceImpl)(implicit ec: AppExecutionContext) extends NotebookService with SQLSyntaxSupport[Notebook] {
 
-  def findByTitle(title: String): Future[Option[Notebook]] = {
-    Future {
-      Notebook.find(title)
+  def findByTitle(title: String): Future[Option[Notebook]] = Future {
+    Notebook.find(title)
+  }
+
+  def findAll(): Future[Seq[Notebook]] = Future {
+    Notebook.findAll()
+  }
+
+  def findAllBy(notebookForm: NotebookForm): Future[Seq[Notebook]] = Future {
+    Notebook.findAllBy(
+      sqls"""where
+             title like '%${notebookForm.title}%'
+             and mainText like '%${notebookForm.mainText}%'""")
+  }
+
+  def create(notebookForm: NotebookForm): Future[Notebook] = Future {
+    val current = new DateTime
+    DB localTx { implicit session =>
+      val notebook = Notebook.create(notebookForm.title, Some(notebookForm.mainText), Some(current), current)
+
+      val addedTags = Future.sequence(notebookForm.tags.map { tagName =>
+        tagMstServiceImpl.findByName(tagName).map { tag =>
+          tag match {
+            case None => tagMstServiceImpl.create(tagName)
+            case Some(tag) => Future { tag }
+          }
+        }
+      })
+
+      val addedTagMappings = addedTags.map { tags =>
+        Future.sequence(tags)
+      }.flatMap(f => f.flatMap { tags =>
+        Future.sequence(tags.map {tag =>
+          tagMappingServiceImpl.create(notebook.title, tag.id)
+        })
+      })
+
+      notebook
     }
   }
 
-  def findAll(): Future[Seq[Notebook]] = {
-    Future {
-      Notebook.findAll()
-    }
+  def save(notebookForm: NotebookForm): Future[Notebook] = Future {
+    Notebook.find(notebookForm.title).map { notebook =>
+      notebook.copy(mainText = Some(notebookForm.mainText), upadtedAt = Some(new DateTime)).save()
+    }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
   }
 
-  def findAllBy(notebookForm: NotebookForm): Future[Seq[Notebook]] = {
-    Future {
-      Notebook.findAllBy(
-        sqls"""where
-               title like '%${notebookForm.title}%'
-               and mainText like '%${notebookForm.mainText}%'""")
-    }
-  }
-
-  def create(notebookForm: NotebookForm): Future[Notebook] = {
-    Future {
-      val current = new DateTime
-      Notebook.create(notebookForm.title, Some(notebookForm.mainText), Some(current), current)
-    }
-  }
-
-  def save(notebookForm: NotebookForm): Future[Notebook] = {
-    Future {
-      Notebook.find(notebookForm.title).map { notebook =>
-        notebook.copy(mainText = Some(notebookForm.mainText), upadtedAt = Some(new DateTime)).save()
-      }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
-    }
-  }
-
-  def destroy(notebookForm: NotebookForm): Future[Int] = {
-    Future {
-      Notebook.find(notebookForm.title).map { notebook =>
-        notebook.destroy()
-      }.getOrElse(throw new RuntimeException(s"削除対象[${notebookForm.title}]の記事が存在しません"))
-    }
+  def destroy(notebookForm: NotebookForm): Future[Int] = Future {
+    Notebook.find(notebookForm.title).map { notebook =>
+      notebook.destroy()
+    }.getOrElse(throw new RuntimeException(s"削除対象[${notebookForm.title}]の記事が存在しません"))
   }
 }

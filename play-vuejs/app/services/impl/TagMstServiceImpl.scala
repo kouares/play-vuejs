@@ -2,7 +2,6 @@ package services.impl
 
 import javax.inject.Inject
 
-import controllers.forms.NotebookForm.NotebookForm
 import models.TagMst
 import modules.AppExecutionContext
 import scalikejdbc._
@@ -25,9 +24,15 @@ class TagMstServiceImpl @Inject()(implicit ec: AppExecutionContext) extends TagM
           """)
   }
 
-  def create(notebookForm: NotebookForm): Future[Seq[TagMst]] = Future {
-    notebookForm.tags.map { name =>
-      TagMst.create(Some(name))
-    }
+  def findAllByName(names: Seq[String]): Future[Seq[TagMst]] = Future {
+    TagMst.findAllBy(
+      sqls"""where
+            name in (${names})
+          """
+    )
+  }
+
+  def create(name: String): Future[TagMst] = Future {
+    TagMst.create(Some(name))
   }
 }

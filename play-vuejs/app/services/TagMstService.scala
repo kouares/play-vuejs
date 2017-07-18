@@ -1,7 +1,6 @@
 package services
 
-import controllers.forms.NotebookForm.NotebookForm
-import models.{Notebook, TagMst}
+import models.TagMst
 
 import scala.concurrent.Future
 
@@ -13,5 +12,7 @@ trait TagMstService {
 
   def findByName(name: String): Future[Option[TagMst]]
 
-  def create(notebookForm: NotebookForm): Future[Notebook]
+  def findAllByName(names: Seq[String]): Future[Seq[TagMst]]
+
+  def create(name: String): Future[TagMst]
 }
