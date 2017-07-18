@@ -1,6 +1,5 @@
 package services.impl
 
-import java.sql.Timestamp
 import javax.inject.Inject
 
 import controllers.forms.NotebookForm.NotebookForm
