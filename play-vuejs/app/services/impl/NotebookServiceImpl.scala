@@ -45,7 +45,7 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
         }
       })
 
-      val addedTagMappings = addedTags.map { tags =>
+      addedTags.map { tags =>
         Future.sequence(tags)
       }.flatMap(f => f.flatMap { tags =>
         Future.sequence(tags.map {tag =>
