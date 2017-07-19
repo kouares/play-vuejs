@@ -21,23 +21,22 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
   }
 
   def findAll(): Future[Seq[NotebookForm]] = Future {
-    val sortedNotes = Notebook.findAll().sortBy(note => note.title)
+    DB readOnly { implicit session =>
+      val sortedNotes = Notebook.findAll().sortBy(note => note.title)
 
-    val (n, tmap, tm) = (Notebook.syntax("nb"), TagMapping.syntax("tmap"), TagMst.syntax("tm"))
-    val notebookWithTag = sql"""
-         select
-           ${n.result.*}, ${tm.result.*}
-         from
-           ${Notebook.as(n)}
-           inner join ${TagMapping.as(tmap)} on ${n.title} = ${tmap.title}
-           left join ${TagMst.as(tm)} on ${tmap.tagId} = ${tm.id}
-       """.map(implicit rs => (Notebook(n.resultName).apply(rs), TagMst(tm.resultName).apply(rs))).list.apply()
+      val (nb, tmp, tm) = (Notebook.syntax("nb"), TagMapping.syntax("tmp"), TagMst.syntax("tm"))
+      val notebookWithTag = withSQL {
+        select.from(Notebook as nb).
+          innerJoin(TagMapping as tmp).on(nb.title, tmp.title).
+          leftJoin(TagMst as tm).on(tmp.tagId, tm.id)
+      }.map(rs => (Notebook(nb.resultName)(rs), TagMst(tm.resultName)(rs))).list.apply()
 
-    sortedNotes.map(note =>
-      NotebookForm(note.title
-        , note.mainText.getOrElse("")
-        , notebookWithTag.filter(nwt => note.title == nwt._1.title).map(result => result._2.name.getOrElse("")))
-    )
+      sortedNotes.map(note =>
+        NotebookForm(note.title
+          , note.mainText.getOrElse("")
+          , notebookWithTag.filter(nwt => note.title == nwt._1.title).map(result => result._2.name.getOrElse("")))
+      )
+    }
   }
 
   def findAllBy(notebookForm: NotebookForm): Future[Seq[Notebook]] = Future {
