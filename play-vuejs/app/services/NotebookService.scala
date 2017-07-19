@@ -12,7 +12,7 @@ trait NotebookService {
 
   def findByTitle(title: String): Future[Option[Notebook]]
 
-  def findAll(): Future[Seq[Notebook]]
+  def findAll(): Future[Seq[NotebookForm]]
 
   def findAllBy(notebookForm: NotebookForm): Future[Seq[Notebook]]
 

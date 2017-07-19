@@ -20,10 +20,18 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
     Notebook.find(title)
   }
 
-  def findAll(): Future[Seq[Notebook]] = Future {
-    Notebook.findAll().sortBy(note => note.title)
+  def findAll(): Future[Seq[NotebookForm]] = Future {
+    val sortedNotes = Notebook.findAll().sortBy(note => note.title)
 
     val (n, tmap, tm) = (Notebook.syntax("n"), TagMapping.syntax("tmap"), TagMst.syntax("tm"))
+    val notebookWithTag = sql"""
+         select
+           ${n.result.*}, ${tm.result.*}
+         from
+           ${Notebook.as(n)}
+           inner join ${TagMapping.as(tmap)} on ${n.title} = ${tmap.title}
+           left join ${TagMst.as(tm)} on ${tmap.tagId} = ${tm.id}
+       """.map(implicit rs => (Notebook(n.resultName), TagMst(tm.resultName))).list().apply()
 
   }
 
