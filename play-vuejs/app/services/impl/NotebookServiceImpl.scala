@@ -3,7 +3,7 @@ package services.impl
 import javax.inject.Inject
 
 import controllers.forms.NotebookForm.NotebookForm
-import models.{Notebook, TagMst}
+import models.{Notebook, TagMapping, TagMst}
 import modules.AppExecutionContext
 import services.NotebookService
 
@@ -21,7 +21,10 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
   }
 
   def findAll(): Future[Seq[Notebook]] = Future {
-    Notebook.findAll()
+    Notebook.findAll().sortBy(note => note.title)
+
+    val (n, tmap, tm) = (Notebook.syntax("n"), TagMapping.syntax("tmap"), TagMst.syntax("tm"))
+
   }
 
   def findAllBy(notebookForm: NotebookForm): Future[Seq[Notebook]] = Future {
@@ -37,10 +40,10 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
       val notebook = Notebook.create(notebookForm.title, Some(notebookForm.mainText), Some(current), current)
 
       val addedTags = Future.sequence(notebookForm.tags.map { tagName =>
-        tagMstServiceImpl.findByName(tagName).map { tag =>
-          tag match {
-            case None => tagMstServiceImpl.create(tagName)
-            case Some(tag) => Future { tag }
+        tagMstServiceImpl.findByName(tagName).map {
+          case None => tagMstServiceImpl.create(tagName)
+          case Some(tag) => Future {
+            tag
           }
         }
       })
