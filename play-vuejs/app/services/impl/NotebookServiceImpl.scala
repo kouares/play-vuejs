@@ -51,31 +51,39 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
     DB localTx { implicit session =>
       val notebook = Notebook.create(notebookForm.title, Some(notebookForm.mainText), Some(current), current)
 
-      val addedTags = Future.sequence(notebookForm.tags.map { tagName =>
+      val addedTags = notebookForm.tags.map { tagName =>
         tagMstServiceImpl.findByName(tagName).map {
           case None => tagMstServiceImpl.create(tagName)
-          case Some(tag) => Future {
-            tag
-          }
-        }
-      })
-
-      addedTags.map { tags =>
-        Future.sequence(tags)
-      }.flatten.map { tags =>
-        tags.map { tag =>
-          tagMappingServiceImpl.create(notebook.title, tag.id)
+          case Some(tag) => Future { tag }
         }
       }
+
+      Future.sequence(addedTags).map(Future.sequence(_)).map(tags =>
+        tags.map(_.map(tag => tagMappingServiceImpl.create(notebook.title, tag.id))))
 
       notebook
     }
   }
 
   def save(notebookForm: NotebookForm): Future[Notebook] = Future {
-    Notebook.find(notebookForm.title).map { notebook =>
-      notebook.copy(mainText = Some(notebookForm.mainText), upadtedAt = Some(new DateTime)).save()
-    }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
+    val current = new DateTime
+    DB localTx { implicit session =>
+      val notebook = Notebook.find(notebookForm.title).map { notebook =>
+        notebook.copy(mainText = Some(notebookForm.mainText), upadtedAt = Some(current)).save()
+      }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
+
+      val addedTags = notebookForm.tags.map { tagName =>
+        tagMstServiceImpl.findByName(tagName).map(_ match {
+          case None => tagMstServiceImpl.create(tagName)
+          case Some(tag) => Future { tag}
+        })
+      }
+
+      Future.sequence(addedTags).map(Future.sequence(_)).map(tags =>
+        tags.map(_.map(tag => tagMappingServiceImpl.create(notebook.title, tag.id))))
+
+      notebook
+    }
   }
 
   def destroy(notebookForm: NotebookForm): Future[Int] = Future {
