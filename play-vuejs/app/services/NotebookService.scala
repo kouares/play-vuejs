@@ -9,6 +9,7 @@ import scala.concurrent.Future
   * Created by koichi on 2017/07/17.
   */
 trait NotebookService {
+
   def findByTitle(title: String): Future[Option[Notebook]]
 
   def findAll(): Future[Seq[Notebook]]

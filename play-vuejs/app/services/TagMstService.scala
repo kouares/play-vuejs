@@ -8,6 +8,7 @@ import scala.concurrent.Future
   * Created by koichi.akimoto on 2017/07/18.
   */
 trait TagMstService {
+
   def findById(id: Int): Future[Option[TagMst]]
 
   def findByName(name: String): Future[Option[TagMst]]

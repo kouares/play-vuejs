@@ -13,6 +13,7 @@ import scala.concurrent.Future
   * Created by koichi.akimoto on 2017/07/18.
   */
 class TagMstServiceImpl @Inject()(implicit ec: AppExecutionContext) extends TagMstService with SQLSyntaxSupport[TagMst] {
+
   def findById(id: Int): Future[Option[TagMst]] = Future {
     TagMst.find(id)
   }

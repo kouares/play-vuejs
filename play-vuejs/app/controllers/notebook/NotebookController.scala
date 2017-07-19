@@ -16,6 +16,7 @@ import scala.concurrent.Future
   * Created by kouares on 2017/07/16.
   */
 object NotebookController {
+
   implicit val NotebookFormWrites = (
     (__ \ "title").write[String] and
     (__ \ "mainText").write[String] and
@@ -29,6 +30,7 @@ object NotebookController {
 
 @Singleton
 class NotebookController @Inject()(cc: ControllerComponents)(implicit ec: AppExecutionContext) extends AbstractController(cc){
+
   private val logger = Logger(classOf[NotebookController])
 
   def list() = Action.async { implicit request: Request[AnyContent] =>
