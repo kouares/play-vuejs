@@ -47,11 +47,11 @@ class NotebookServiceImpl @Inject()(tagMstServiceImpl: TagMstServiceImpl, tagMap
 
       addedTags.map { tags =>
         Future.sequence(tags)
-      }.flatMap(f => f.flatMap { tags =>
-        Future.sequence(tags.map {tag =>
+      }.flatten.map { tags =>
+        tags.map { tag =>
           tagMappingServiceImpl.create(notebook.title, tag.id)
-        })
-      })
+        }
+      }
 
       notebook
     }
