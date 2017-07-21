@@ -1,6 +1,7 @@
 package services
 
 import models.TagMapping
+import scalikejdbc.DBSession
 
 import scala.concurrent.Future
 
@@ -9,5 +10,7 @@ import scala.concurrent.Future
   */
 trait TagMappingService {
 
-  def create(title: String, tagId: Int): Future[TagMapping]
+  def create(title: String, tagId: Int)(implicit session: DBSession): Future[TagMapping]
+
+  private[services] def destroy(tagMapping: Seq[TagMapping])(implicit session: DBSession): Future[Seq[Int]]
 }
