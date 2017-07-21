@@ -14,18 +14,18 @@ import scala.concurrent.Future
   */
 class TagMstServiceImpl @Inject()(implicit ec: AppExecutionContext) extends TagMstService with SQLSyntaxSupport[TagMst] {
 
-  def findById(id: Int): Future[Option[TagMst]] = Future {
+  def findById(id: Int)(implicit session: DBSession): Future[Option[TagMst]] = Future {
     TagMst.find(id)
   }
 
-  def findByName(name: String): Future[Option[TagMst]] = Future {
+  def findByName(name: String)(implicit session: DBSession): Future[Option[TagMst]] = Future {
     TagMst.findBy(
       sqls"""where
              name = ${name}
           """)
   }
 
-  def findAllByName(names: Seq[String]): Future[Seq[TagMst]] = Future {
+  def findAllByName(names: Seq[String])(implicit session: DBSession): Future[Seq[TagMst]] = Future {
     TagMst.findAllBy(
       sqls"""where
             name in (${names})
@@ -33,7 +33,7 @@ class TagMstServiceImpl @Inject()(implicit ec: AppExecutionContext) extends TagM
     )
   }
 
-  def create(name: String): Future[TagMst] = Future {
+  def create(name: String)(implicit session: DBSession): Future[TagMst] = Future {
     TagMst.create(Some(name))
   }
 }
