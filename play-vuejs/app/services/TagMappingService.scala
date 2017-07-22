@@ -10,7 +10,7 @@ import scala.concurrent.Future
   */
 trait TagMappingService {
 
-  private[servuces] def create(title: String, tagId: Int)(implicit session: DBSession): Future[TagMapping]
+  private[services] def create(title: String, tagId: Int)(implicit session: DBSession): Future[TagMapping]
 
   private[services] def destroy(tagMapping: Seq[TagMapping])(implicit session: DBSession): Future[Seq[Int]]
 }
