@@ -14,7 +14,7 @@ import scala.concurrent.Future
   */
 class TagMappingServiceImpl @Inject()(implicit ec: AppExecutionContext) extends TagMappingService with SQLSyntaxSupport[TagMapping] {
 
-  def create(title: String, tagId: Int)(implicit session: DBSession): Future[TagMapping] = Future {
+  private[services] def create(title: String, tagId: Int)(implicit session: DBSession): Future[TagMapping] = Future {
     TagMapping.create(title, Some(tagId))
   }
 
