@@ -51,7 +51,11 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
     val notebookFormResult = request.body.validate[NotebookForm]
 
     notebookFormResult.fold(
-      errors => Future { BadRequest(Json.obj("message" -> JsError.toJson(errors))) },
+      errors => Future {
+        val jsError = JsError.toJson(errors)
+        logger.debug(jsError.toString)
+        BadRequest(Json.obj("message" -> jsError))
+      },
       notebookForm => {
         notebookService.create(notebookForm).map(notebook =>
           notebookService.findByTitle(notebook.title)
@@ -68,7 +72,11 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
     val notebookFormResult = request.body.validate[NotebookForm]
 
     notebookFormResult.fold(
-      errors => Future { BadRequest(Json.obj("message" -> JsError.toJson(errors))) },
+      errors => Future {
+        val jsError = JsError.toJson(errors)
+        logger.debug(jsError.toString)
+        BadRequest(Json.obj("message" -> jsError))
+      },
       notebookForm => {
         notebookService.save(notebookForm).map(notebook =>
           notebookService.findByTitle(notebook.title)
