@@ -9,6 +9,7 @@ import play.api.Logger
 import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request}
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import services.NotebookService
 
 import scala.concurrent.Future
 
@@ -29,31 +30,60 @@ object NotebookController {
 }
 
 @Singleton
-class NotebookController @Inject()(cc: ControllerComponents)(implicit ec: AppExecutionContext) extends AbstractController(cc){
+class NotebookController @Inject()(cc: ControllerComponents, notebookService: NotebookService)(implicit ec: AppExecutionContext) extends AbstractController(cc){
+  import NotebookController._
 
   private val logger = Logger(classOf[NotebookController])
 
-  def list() = Action.async { implicit request: Request[AnyContent] =>
-    Future {
-      Ok
-    }
+  def list() = Action.async(parse.json) { implicit request =>
+    notebookService.findAll().map(serviceResult =>
+      Ok(Json.obj("notebooks" -> serviceResult.map(notebook => Json.toJson(notebook).toString)))
+    )
   }
 
-  def create() = Action.async { implicit request: Request[AnyContent] =>
-    Future {
-      Ok
-    }
+  def search(title: String, mainText: String) = Action.async(parse.json) {implicit request =>
+    notebookService.findAllBy(NotebookForm(title, mainText, Seq.empty[String])).map(serviceResult =>
+      Ok(Json.obj("notebooks" -> serviceResult.map(notebook => Json.toJson(notebook).toString)))
+    )
   }
 
-  def update() = Action.async { implicit request: Request[AnyContent] =>
-    Future {
-      Ok
-    }
+  def create() = Action.async(parse.json) { implicit request =>
+    val notebookFormResult = request.body.validate[NotebookForm]
+
+    notebookFormResult.fold(
+      errors => Future { BadRequest(Json.obj("message" -> JsError.toJson(errors))) },
+      notebookForm => {
+        notebookService.create(notebookForm).map(notebook =>
+          notebookService.findByTitle(notebook.title)
+        )flatMap(serviceResult =>
+          serviceResult.map(_ match {
+            case None => throw new RuntimeException(s"登録した記事が存在しません。タイトル[${notebookForm.title}]")
+            case Some(findNotebook) => Ok(Json.toJson(findNotebook))
+        }))
+      }
+    )
   }
 
-  def remove() = Action.async { implicit request: Request[AnyContent] =>
-    Future {
-      Ok
-    }
+  def update(title: String) = Action.async(parse.json) { implicit request =>
+    val notebookFormResult = request.body.validate[NotebookForm]
+
+    notebookFormResult.fold(
+      errors => Future { BadRequest(Json.obj("message" -> JsError.toJson(errors))) },
+      notebookForm => {
+        notebookService.save(notebookForm).map(notebook =>
+          notebookService.findByTitle(notebook.title)
+        ).flatMap(serviceResult =>
+          serviceResult.map(_ match {
+            case None => InternalServerError(Json.obj("message" -> s"更新した記事が存在しません。タイトル[${notebookForm.title}]"))
+            case Some(findNotebook) => Ok(Json.toJson(findNotebook))
+        }))
+      }
+    )
+  }
+
+  def remove(title: String) = Action.async { implicit request: Request[AnyContent] =>
+    notebookService.destroy(NotebookForm(title, "", Seq.empty[String])).map(serviceResult =>
+      Ok(Json.obj("count" -> serviceResult))
+    )
   }
 }
