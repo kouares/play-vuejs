@@ -35,13 +35,13 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
 
   private val logger = Logger(classOf[NotebookController])
 
-  def list() = Action.async(parse.json) { implicit request =>
+  def list() = Action.async { implicit request: Request[AnyContent] =>
     notebookService.findAll().map(serviceResult =>
       Ok(Json.obj("notebooks" -> serviceResult.map(notebook => Json.toJson(notebook).toString)))
     )
   }
 
-  def search(title: String, mainText: String) = Action.async(parse.json) {implicit request =>
+  def search(title: String, mainText: String) = Action.async {implicit request: Request[AnyContent] =>
     notebookService.findAllBy(NotebookForm(title, mainText, Seq.empty[String])).map(serviceResult =>
       Ok(Json.obj("notebooks" -> serviceResult.map(notebook => Json.toJson(notebook).toString)))
     )
