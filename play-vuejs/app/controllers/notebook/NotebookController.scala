@@ -1,14 +1,13 @@
 package controllers.notebook
 
-import javax.inject.Inject
-import javax.inject.Singleton
+import javax.inject.{Inject, Singleton}
 
 import controllers.forms.NotebookForm.NotebookForm
 import modules.AppExecutionContext
 import play.api.Logger
-import play.api.mvc.{AbstractController, AnyContent, ControllerComponents, Request}
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import play.api.mvc._
 import services.NotebookService
 
 import scala.concurrent.Future
