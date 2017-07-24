@@ -12,7 +12,8 @@ create table play_catchup.tag (
 );
 
 create table play_catchup.tag_mapping (
-    title varchar(255) not null,
-    tag_id int,
+    notebook_id int not null,
+    tag_id int not null,
+    foreign key (notebook_id) references notebook(id),
     foreign key (tag_id) references tag_mst(id)
 );
