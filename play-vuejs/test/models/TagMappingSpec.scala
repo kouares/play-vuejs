@@ -12,11 +12,11 @@ class TagMappingSpec extends Specification {
     val tm = TagMapping.syntax("tm")
 
     "find by primary keys" in new AutoRollback {
-      val maybeFound = TagMapping.find("MyString", null)
+      val maybeFound = TagMapping.find(123, 123)
       maybeFound.isDefined should beTrue
     }
     "find by where clauses" in new AutoRollback {
-      val maybeFound = TagMapping.findBy(sqls.eq(tm.title, "MyString"))
+      val maybeFound = TagMapping.findBy(sqls.eq(tm.notebookId, 123))
       maybeFound.isDefined should beTrue
     }
     "find all records" in new AutoRollback {
@@ -28,15 +28,15 @@ class TagMappingSpec extends Specification {
       count should be_>(0L)
     }
     "find all by where clauses" in new AutoRollback {
-      val results = TagMapping.findAllBy(sqls.eq(tm.title, "MyString"))
+      val results = TagMapping.findAllBy(sqls.eq(tm.notebookId, 123))
       results.size should be_>(0)
     }
     "count by where clauses" in new AutoRollback {
-      val count = TagMapping.countBy(sqls.eq(tm.title, "MyString"))
+      val count = TagMapping.countBy(sqls.eq(tm.notebookId, 123))
       count should be_>(0L)
     }
     "create new record" in new AutoRollback {
-      val created = TagMapping.create(title = "MyString")
+      val created = TagMapping.create(notebookId = 123, tagId = 123)
       created should not beNull
     }
     "save a record" in new AutoRollback {
@@ -50,7 +50,7 @@ class TagMappingSpec extends Specification {
       val entity = TagMapping.findAll().head
       val deleted = TagMapping.destroy(entity) == 1
       deleted should beTrue
-      val shouldBeNone = TagMapping.find("MyString", null)
+      val shouldBeNone = TagMapping.find(123, 123)
       shouldBeNone.isDefined should beFalse
     }
     "perform batch insert" in new AutoRollback {

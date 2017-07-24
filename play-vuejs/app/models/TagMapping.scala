@@ -3,8 +3,8 @@ package models
 import scalikejdbc._
 
 case class TagMapping(
-  title: String,
-  tagId: Option[Int] = None) {
+  notebookId: Int,
+  tagId: Int) {
 
   def save()(implicit session: DBSession = TagMapping.autoSession): TagMapping = TagMapping.save(this)(session)
 
@@ -17,11 +17,11 @@ object TagMapping extends SQLSyntaxSupport[TagMapping] {
 
   override val tableName = "tag_mapping"
 
-  override val columns = Seq("title", "tag_id")
+  override val columns = Seq("notebook_id", "tag_id")
 
   def apply(tm: SyntaxProvider[TagMapping])(rs: WrappedResultSet): TagMapping = apply(tm.resultName)(rs)
   def apply(tm: ResultName[TagMapping])(rs: WrappedResultSet): TagMapping = new TagMapping(
-    title = rs.get(tm.title),
+    notebookId = rs.get(tm.notebookId),
     tagId = rs.get(tm.tagId)
   )
 
@@ -29,9 +29,9 @@ object TagMapping extends SQLSyntaxSupport[TagMapping] {
 
   override val autoSession = AutoSession
 
-  def find(title: String, tagId: Option[Int])(implicit session: DBSession = autoSession): Option[TagMapping] = {
+  def find(notebookId: Int, tagId: Int)(implicit session: DBSession = autoSession): Option[TagMapping] = {
     withSQL {
-      select.from(TagMapping as tm).where.eq(tm.title, title).and.eq(tm.tagId, tagId)
+      select.from(TagMapping as tm).where.eq(tm.notebookId, notebookId).and.eq(tm.tagId, tagId)
     }.map(TagMapping(tm.resultName)).single.apply()
   }
 
@@ -62,30 +62,30 @@ object TagMapping extends SQLSyntaxSupport[TagMapping] {
   }
 
   def create(
-    title: String,
-    tagId: Option[Int] = None)(implicit session: DBSession = autoSession): TagMapping = {
+    notebookId: Int,
+    tagId: Int)(implicit session: DBSession = autoSession): TagMapping = {
     withSQL {
       insert.into(TagMapping).namedValues(
-        column.title -> title,
+        column.notebookId -> notebookId,
         column.tagId -> tagId
       )
     }.update.apply()
 
     TagMapping(
-      title = title,
+      notebookId = notebookId,
       tagId = tagId)
   }
 
   def batchInsert(entities: Seq[TagMapping])(implicit session: DBSession = autoSession): List[Int] = {
     val params: Seq[Seq[(Symbol, Any)]] = entities.map(entity =>
       Seq(
-        'title -> entity.title,
+        'notebookId -> entity.notebookId,
         'tagId -> entity.tagId))
     SQL("""insert into tag_mapping(
-      title,
+      notebook_id,
       tag_id
     ) values (
-      {title},
+      {notebookId},
       {tagId}
     )""").batchByName(params: _*).apply[List]()
   }
@@ -93,15 +93,15 @@ object TagMapping extends SQLSyntaxSupport[TagMapping] {
   def save(entity: TagMapping)(implicit session: DBSession = autoSession): TagMapping = {
     withSQL {
       update(TagMapping).set(
-        column.title -> entity.title,
+        column.notebookId -> entity.notebookId,
         column.tagId -> entity.tagId
-      ).where.eq(column.title, entity.title).and.eq(column.tagId, entity.tagId)
+      ).where.eq(column.notebookId, entity.notebookId).and.eq(column.tagId, entity.tagId)
     }.update.apply()
     entity
   }
 
   def destroy(entity: TagMapping)(implicit session: DBSession = autoSession): Int = {
-    withSQL { delete.from(TagMapping).where.eq(column.title, entity.title).and.eq(column.tagId, entity.tagId) }.update.apply()
+    withSQL { delete.from(TagMapping).where.eq(column.notebookId, entity.notebookId).and.eq(column.tagId, entity.tagId) }.update.apply()
   }
 
 }
