@@ -8,7 +8,7 @@ import play.api.Logger
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.mvc._
-import services.NotebookService
+import services.{NotebookConditions, NotebookService}
 
 import scala.concurrent.Future
 
@@ -18,11 +18,13 @@ import scala.concurrent.Future
 object NotebookController {
 
   implicit val NotebookFormWrites = (
+    (__ \ "id").write[Int] and
     (__ \ "title").write[String] and
     (__ \ "mainText").write[String] and
     (__ \ "tags").write[Seq[String]])(unlift(NotebookForm.unapply))
 
   implicit val NotebookFormReads = (
+    (__ \ "id").read[Int] and
     (__ \ "title").read[String] and
     (__ \ "mainText").read[String] and
     (__ \ "tags").read[Seq[String]])(NotebookForm)
@@ -41,7 +43,7 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
   }
 
   def search(title: String, mainText: String) = Action.async {implicit request: Request[AnyContent] =>
-    notebookService.findAllBy(NotebookForm(title, mainText, Seq.empty[String])).map(serviceResult =>
+    notebookService.findAllBy(NotebookConditions(title, mainText)).map(serviceResult =>
       Ok(Json.obj("notebooks" -> serviceResult.map(notebook => Json.toJson(notebook).toString)))
     )
   }
@@ -57,7 +59,7 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
       },
       notebookForm => {
         notebookService.create(notebookForm).map(notebook =>
-          notebookService.findByTitle(notebook.title)
+          notebookService.findById(notebook.id)
         )flatMap(serviceResult =>
           serviceResult.map(_ match {
             case None => throw new RuntimeException(s"登録した記事が存在しません。タイトル[${notebookForm.title}]")
@@ -67,7 +69,7 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
     )
   }
 
-  def update(title: String) = Action.async(parse.json) { implicit request =>
+  def update(id: Int) = Action.async(parse.json) { implicit request =>
     val notebookFormResult = request.body.validate[NotebookForm]
 
     notebookFormResult.fold(
@@ -78,7 +80,7 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
       },
       notebookForm => {
         notebookService.save(notebookForm).map(notebook =>
-          notebookService.findByTitle(notebook.title)
+          notebookService.findById(notebook.id)
         ).flatMap(serviceResult =>
           serviceResult.map(_ match {
             case None => InternalServerError(Json.obj("message" -> s"更新した記事が存在しません。タイトル[${notebookForm.title}]"))
@@ -88,8 +90,8 @@ class NotebookController @Inject()(cc: ControllerComponents, notebookService: No
     )
   }
 
-  def remove(title: String) = Action.async { implicit request: Request[AnyContent] =>
-    notebookService.destroy(NotebookForm(title, "", Seq.empty[String])).map(serviceResult =>
+  def remove(id: Int) = Action.async { implicit request: Request[AnyContent] =>
+    notebookService.destroy(id).map(serviceResult =>
       Ok(Json.obj("count" -> serviceResult))
     )
   }

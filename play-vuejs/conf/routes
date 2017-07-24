@@ -7,8 +7,8 @@
 GET     /notebooks                  controllers.notebook.NotebookController.list
 GET     /notebooks                  controllers.notebook.NotebookController.search(title: String, mainText: String)
 POST    /notebooks                  controllers.notebook.NotebookController.create
-PUT     /notebooks/:title           controllers.notebook.NotebookController.update(title: String)
-DELETE  /notebooks/:title           controllers.notebook.NotebookController.remove(title: String)
+PUT     /notebooks/:id          controllers.notebook.NotebookController.update(id: Int)
+DELETE  /notebooks/:id           controllers.notebook.NotebookController.remove(id: Int)
 
 # An example controller showing a sample home page
 #GET     /                           controllers.HomeController.index
