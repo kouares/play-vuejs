@@ -2,13 +2,15 @@ create table play_catchup.notebook (
     id    int auto_increment primary key,
     title varchar(190),
     main_text varchar(10000),
-    upadted_at datetime,
+    updated_at datetime,
     created_at datetime not null
 );
 
 create table play_catchup.tag (
     id int auto_increment primary key, 
-    name varchar(100)
+    name varchar(100),
+    updated_at datetime,
+    created_at datetime not null
 );
 
 create table play_catchup.tag_mapping (
