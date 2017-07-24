@@ -10,15 +10,17 @@ import scala.concurrent.Future
   */
 trait NotebookService {
 
-  def findByTitle(title: String): Future[Option[NotebookForm]]
+  def findById(id: Int): Future[Option[NotebookForm]]
 
   def findAll(): Future[Seq[NotebookForm]]
 
-  def findAllBy(notebookForm: NotebookForm): Future[Seq[NotebookForm]]
+  def findAllBy(conditions: NotebookConditions): Future[Seq[NotebookForm]]
 
   def create(notebookForm: NotebookForm): Future[Notebook]
 
   def save(notebookForm: NotebookForm): Future[Notebook]
 
-  def destroy(notebookForm: NotebookForm): Future[Int]
+  def destroy(id: Int): Future[Int]
 }
+
+case class NotebookConditions(title: String, mainText: String)

@@ -1,6 +1,6 @@
 package services
 
-import models.TagMst
+import models.Tag
 import scalikejdbc.DBSession
 
 import scala.concurrent.Future
@@ -8,13 +8,13 @@ import scala.concurrent.Future
 /**
   * Created by koichi.akimoto on 2017/07/18.
   */
-trait TagMstService {
+trait TagService {
 
-  def findById(id: Int)(implicit session: DBSession): Future[Option[TagMst]]
+  def findById(id: Int)(implicit session: DBSession): Future[Option[Tag]]
 
-  def findByName(name: String)(implicit session: DBSession): Future[Option[TagMst]]
+  def findByName(name: String)(implicit session: DBSession): Future[Option[Tag]]
 
-  def findAllByName(names: Seq[String])(implicit session: DBSession): Future[Seq[TagMst]]
+  def findAllByName(names: Seq[String])(implicit session: DBSession): Future[Seq[Tag]]
 
-  def create(name: String)(implicit session: DBSession): Future[TagMst]
+  def create(name: String)(implicit session: DBSession): Future[Tag]
 }

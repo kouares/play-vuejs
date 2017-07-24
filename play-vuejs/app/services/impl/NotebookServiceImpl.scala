@@ -3,30 +3,31 @@ package services.impl
 import javax.inject.Inject
 
 import controllers.forms.NotebookForm.NotebookForm
-import models.{Notebook, TagMapping, TagMst}
+import models.{Notebook, Tag, TagMapping}
 import modules.AppExecutionContext
 import org.joda.time.DateTime
 import scalikejdbc._
-import services.{NotebookService, TagMappingService, TagMstService}
+import services.{NotebookConditions, NotebookService, TagMappingService, TagService}
 
 import scala.concurrent.Future
 
 /**
   * Created by koichi on 2017/07/17.
   */
-class NotebookServiceImpl @Inject()(tagMstService: TagMstService, tagMappingService: TagMappingService)(implicit ec: AppExecutionContext) extends NotebookService with SQLSyntaxSupport[Notebook] {
+class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService: TagMappingService)(implicit ec: AppExecutionContext) extends NotebookService with SQLSyntaxSupport[Notebook] {
 
-  def findByTitle(title: String): Future[Option[NotebookForm]] = Future {
+  def findById(id: Int): Future[Option[NotebookForm]] = Future {
     DB readOnly { implicit session =>
-      val notebook = Notebook.find(title)
+      val notebook = Notebook.find(id)
 
-      val notebookWithTag = findNotebookWithTag(Some(NotebookForm(title, "", Seq.empty[String])))
+      notebook.map(notebook => {
+        val notebookWithTag = findNotebookWithTag(Seq(id))
 
-      notebook.map(note =>
-        NotebookForm(note.title
-          , note.mainText.getOrElse("")
+        NotebookForm(notebook.id
+          , notebook.title
+          , notebook.mainText.getOrElse("")
           , notebookWithTag.map(nwt => nwt._2.name.getOrElse("")))
-      )
+      })
     }
   }
 
@@ -34,27 +35,30 @@ class NotebookServiceImpl @Inject()(tagMstService: TagMstService, tagMappingServ
     DB readOnly { implicit session =>
       val notebooks = Notebook.findAll().sortBy(note => note.title)
 
-      val notebookWithTag = findNotebookWithTag(None)
+      val notebookWithTag = findNotebookWithTag(notebooks.map(_.id))
 
-      notebooks.map(note =>
-        NotebookForm(note.title
-          , note.mainText.getOrElse("")
-          , notebookWithTag.filter(nwt => note.title == nwt._1.title).map(_._2.name.getOrElse("")))
+      notebooks.map(notebook =>
+        NotebookForm(notebook.id
+          , notebook.title
+          , notebook.mainText.getOrElse("")
+          , notebookWithTag.filter(nwt => notebook.title == nwt._1.title).map(_._2.name.getOrElse("")))
       )
     }
   }
 
-  def findAllBy(notebookForm: NotebookForm): Future[Seq[NotebookForm]] = Future {
+  def findAllBy(conditions: NotebookConditions): Future[Seq[NotebookForm]] = Future {
     DB readOnly { implicit session =>
       val notebooks = Notebook.findAllBy(
         sqls"""where
-             title like '%${notebookForm.title}%'
-             and mainText like '%${notebookForm.mainText}%'""").sortBy(notebook => notebook.title)
+             title like '%${conditions.title}%'
+             and mainText like '%${conditions.mainText}%'"""
+      ).sortBy(notebook => notebook.title)
 
-      val notebookWithTag = findNotebookWithTag(Some(notebookForm))
+      val notebookWithTag = findNotebookWithTagBy(conditions)
 
       notebooks.map(notebook =>
-        NotebookForm(notebook.title
+        NotebookForm(notebook.id
+          , notebook.title
           , notebook.mainText.getOrElse("")
           , notebookWithTag.filter(nwt => notebook.title == nwt._1.title).map(_._2.name.getOrElse("")))
       )
@@ -76,7 +80,7 @@ class NotebookServiceImpl @Inject()(tagMstService: TagMstService, tagMappingServ
       }
 
       Future.sequence(addedTags).map(Future.sequence(_)).map(tags =>
-        tags.map(_.map(tag => tagMappingService.create(notebook.title, tag.id))))
+        tags.map(_.map(tag => tagMappingService.create(notebook.id, tag.id))))
 
       notebook
     }
@@ -85,8 +89,8 @@ class NotebookServiceImpl @Inject()(tagMstService: TagMstService, tagMappingServ
   def save(notebookForm: NotebookForm): Future[Notebook] = Future {
     val current = new DateTime
     DB localTx { implicit session =>
-      val notebook = Notebook.find(notebookForm.title).map { notebook =>
-        notebook.copy(mainText = Some(notebookForm.mainText), upadtedAt = Some(current)).save()
+      val notebook = Notebook.find(notebookForm.id).map { notebook =>
+        notebook.copy(mainText = Some(notebookForm.mainText), updatedAt = Some(current)).save()
       }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
 
       val addedTags = notebookForm.tags.map { tagName =>
@@ -99,48 +103,56 @@ class NotebookServiceImpl @Inject()(tagMstService: TagMstService, tagMappingServ
       }
 
       Future.sequence(addedTags).map(Future.sequence(_)).map(tags =>
-        tags.map(_.map(tag => tagMappingService.create(notebook.title, tag.id))))
+        tags.map(_.map(tag => tagMappingService.create(notebook.id, tag.id))))
 
       notebook
     }
   }
 
-  def destroy(notebookForm: NotebookForm): Future[Int] = Future {
+  def destroy(id: Int): Future[Int] = Future {
     DB localTx { implicit session =>
-      val count = Notebook.find(notebookForm.title).map { notebook =>
+      val count = Notebook.find(id).map { notebook =>
         notebook.destroy()
-      }.getOrElse(throw new RuntimeException(s"削除対象[${notebookForm.title}]の記事が存在しません"))
+      }.getOrElse(throw new RuntimeException(s"削除対象[${id}]の記事が存在しません"))
 
       val (nb, tmp) = (Notebook.syntax("nb"), TagMapping.syntax("tmp"))
       withSQL {
         select.from(Notebook as nb).
-          innerJoin(TagMapping as tmp).on(nb.title, tmp.title).
-          where.append(sqls"""where nb.title = ${notebookForm.title}""")
+          innerJoin(TagMapping as tmp).on(nb.id, tmp.notebookId).
+          where.append(sqls"""where nb.id = ${id}""")
       }.map(rs => TagMapping(tmp.resultName)(rs)).list.apply().map(TagMapping.destroy(_))
 
       count
     }
   }
 
-  private def findNotebookWithTag(notebookForm: Option[NotebookForm])(implicit session: DBSession): Seq[(Notebook, TagMst)] = {
-    val (nb, tmp, tm) = (Notebook.syntax("nb"), TagMapping.syntax("tmp"), TagMst.syntax("tm"))
+  private def findNotebookWithTag(id: Seq[Int])(implicit session: DBSession): Seq[(Notebook, Tag)] = {
+    val (nb, tmp, t) = (Notebook.syntax("nb"), TagMapping.syntax("tmp"), Tag.syntax("t"))
 
-    val where = notebookForm.flatMap { condition =>
-      (condition.title.isEmpty, condition.mainText.isEmpty) match {
-        case (true, true) =>
-          Some(sqls"""where nb.title = '%${condition.title}%' or nb.mainText = '%${condition.mainText}%'""")
-        case (true, false) =>
-          Some(sqls"""where nb.title = '%${condition.title}%""")
-        case (false, true) =>
-          Some(sqls"""where nb.mainText = '${condition.mainText}'""")
-        case (false, false) => None
-      }
+    withSQL {
+      select.from(Notebook as nb).
+        innerJoin(TagMapping as tmp).on(nb.id, tmp.notebookId).
+        leftJoin(Tag as t).on(tmp.tagId, t.id).where(sqls"""where nb.id in ${id}""")
+    }.map(rs => (Notebook(nb.resultName)(rs), Tag(t.resultName)(rs))).list.apply()
+  }
+
+  private def findNotebookWithTagBy(conditions: NotebookConditions)(implicit session: DBSession): Seq[(Notebook, Tag)] = {
+    val (nb, tmp, t) = (Notebook.syntax("nb"), TagMapping.syntax("tmp"), Tag.syntax("t"))
+
+    val where = (conditions.title.isEmpty, conditions.mainText.isEmpty) match {
+      case (true, true) =>
+        Some(sqls"""where nb.title = '%${conditions.title}%' or nb.mainText = '%${conditions.mainText}%'""")
+      case (true, false) =>
+        Some(sqls"""where nb.title = '%${conditions.title}%""")
+      case (false, true) =>
+        Some(sqls"""where nb.mainText = '${conditions.mainText}'""")
+      case (false, false) => None
     }
 
     withSQL {
       select.from(Notebook as nb).
-        innerJoin(TagMapping as tmp).on(nb.title, tmp.title).
-        leftJoin(TagMst as tm).on(tmp.tagId, tm.id).where(where)
-    }.map(rs => (Notebook(nb.resultName)(rs), TagMst(tm.resultName)(rs))).list.apply()
+        innerJoin(TagMapping as tmp).on(nb.id, tmp.notebookId).
+        leftJoin(Tag as t).on(tmp.tagId, t.id).where(where)
+    }.map(rs => (Notebook(nb.resultName)(rs), Tag(t.resultName)(rs))).list.apply()
   }
 }
