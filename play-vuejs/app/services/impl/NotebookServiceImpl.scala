@@ -46,12 +46,11 @@ class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService
     }
   }
 
-  def findAllBy(conditions: NotebookConditions): Future[Seq[NotebookForm]] = Future {
+  def findAllBy(title: String): Future[Seq[NotebookForm]] = Future {
     DB readOnly { implicit session =>
       val notebooks = Notebook.findAllBy(
         sqls"""where
-             title like '%${conditions.title}%'
-             and mainText like '%${conditions.mainText}%'"""
+             title like '%${title}%'"""
       ).sortBy(notebook => notebook.title)
 
       val notebookWithTag = findNotebookWithTagBy(conditions)
