@@ -17,13 +17,14 @@ import scala.concurrent.Future
 class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService: TagMappingService)(implicit ec: AppExecutionContext) extends NotebookService with SQLSyntaxSupport[Notebook] {
 
   def findById(id: Int): Future[Option[NotebookForm]] = Future {
+    // 読み込み専用のDB接続を取得
     DB readOnly { implicit session =>
       val notebook = Notebook.find(id)
 
       notebook.map(notebook => {
         val notebookWithTag = findNotebookWithTag(Seq(id))
 
-        NotebookForm(notebook.id
+        NotebookForm(Some(notebook.id)
           , notebook.title
           , notebook.mainText.getOrElse("")
           , notebookWithTag.map(nwt => nwt._2.name.getOrElse("")))
@@ -38,7 +39,7 @@ class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService
       val notebookWithTag = findNotebookWithTag(notebooks.map(_.id))
 
       notebooks.map(notebook =>
-        NotebookForm(notebook.id
+        NotebookForm(Some(notebook.id)
           , notebook.title
           , notebook.mainText.getOrElse("")
           , notebookWithTag.filter(nwt => notebook.title == nwt._1.title).map(_._2.name.getOrElse("")))
@@ -46,17 +47,17 @@ class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService
     }
   }
 
-  def findAllBy(title: String): Future[Seq[NotebookForm]] = Future {
+  def findAllBy(conditions: NotebookConditions): Future[Seq[NotebookForm]] = Future {
     DB readOnly { implicit session =>
       val notebooks = Notebook.findAllBy(
         sqls"""where
-             title like '%${title}%'"""
+             title like '%${conditions.title}%'"""
       ).sortBy(notebook => notebook.title)
 
       val notebookWithTag = findNotebookWithTagBy(conditions)
 
       notebooks.map(notebook =>
-        NotebookForm(notebook.id
+        NotebookForm(Some(notebook.id)
           , notebook.title
           , notebook.mainText.getOrElse("")
           , notebookWithTag.filter(nwt => notebook.title == nwt._1.title).map(_._2.name.getOrElse("")))
@@ -66,6 +67,7 @@ class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService
 
   def create(notebookForm: NotebookForm): Future[Notebook] = Future {
     val current = new DateTime
+    // トランザクションがかかっているDBアクセスを取得
     DB localTx { implicit session =>
       val notebook = Notebook.create(notebookForm.title, Some(notebookForm.mainText), Some(current), current)
 
@@ -88,7 +90,7 @@ class NotebookServiceImpl @Inject()(tagMstService: TagService, tagMappingService
   def save(notebookForm: NotebookForm): Future[Notebook] = Future {
     val current = new DateTime
     DB localTx { implicit session =>
-      val notebook = Notebook.find(notebookForm.id).map { notebook =>
+      val notebook = Notebook.find(notebookForm.id.getOrElse(throw new RuntimeException("必須パラメータがありません"))).map { notebook =>
         notebook.copy(mainText = Some(notebookForm.mainText), updatedAt = Some(current)).save()
       }.getOrElse(throw new RuntimeException(s"更新対象[${notebookForm.title}]の記事が存在しません"))
 

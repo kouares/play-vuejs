@@ -1,5 +1,5 @@
 @* list Template File *@
-@(notebookForm: Form[controllers.forms.NotebookForm.NotebookForm], notebooks: Seq[controllers.forms.NotebookFormObj.NotebookForm])(implicit request: Request[Any],  messages: Messages)
+@(notebookForm: Form[controllers.forms.NotebookForm.NotebookForm], notebooks: Seq[controllers.forms.NotebookForm.NotebookForm])(implicit request: Request[Any],  messages: Messages)
 
 @import helper._
 
@@ -37,12 +37,12 @@
             <tbody>
             @notebooks.map { notebook =>
             <tr>
-                <td><a href="@routes.NotebookController.edit(notebook.title)">@notebook.title</a></td>
+                <td><a href="@routes.NotebookController.edit(notebook.id.getOrElse(-1))">@notebook.title</a></td>
                 <td>
                     @notebook.tags.map { tag =>
                     <span class="label label-info">@tag</span> }
                 </td>
-                <td>@helper.form(CSRF(routes.NotebookController.remove(notebook.title))) {
+                <td>@helper.form(CSRF(routes.NotebookController.remove(notebook.id.getOrElse(-1)))) {
                     <input type="submit" value="削除" class="btn btn-danger btn-xs" /> }
                 </td>
             </tr>

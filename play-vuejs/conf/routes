@@ -3,30 +3,23 @@
 # https://www.playframework.com/documentation/latest/ScalaRouting
 # ~~~~
 
-# Notebook
-# GET     /notebooks                  controllers.notebook.NotebookController.list
-#GET     /notebooks                  controllers.notebook.NotebookController.search(title: String, mainText: String)
-#POST    /notebooks                  controllers.notebook.NotebookController.create
-#PUT     /notebooks/:id          controllers.notebook.NotebookController.update(id: Int)
-#DELETE  /notebooks/:id           controllers.notebook.NotebookController.remove(id: Int)
-
 # An example controller showing a sample home page
 #GET     /                           controllers.HomeController.index
 
 # Map static resources from the /public folder to the /assets URL path
-GET     /assets/*file               controllers.Assets.versioned(path="/public", file: Asset)
+GET    /assets/*file          controllers.Assets.versioned(path="/public", file: Asset)
 
 # notebook
 # notebook index
-GET     /notebook                   controllers.NotebookController.index
+GET    /notebook              controllers.NotebookController.index
 # notebook create
-GET     /notebook/showcreate        controllers.NotebookController.showcreate
-POST    /notebook/create            controllers.NotebookController.create
+GET    /notebook/showcreate   controllers.NotebookController.showcreate
+POST   /notebook/create       controllers.NotebookController.create
 # notebook read
-GET     /notebook/list              controllers.NotebookController.list
-GET		/notebook/freeword			controllers.NotebookController.freeword
-GET     /notebook/edit              controllers.NotebookController.edit(title: String)
+GET    /notebook/list         controllers.NotebookController.list
+GET    /notebook/freeword     controllers.NotebookController.freeword
+GET    /notebook/edit         controllers.NotebookController.edit(id: Int)
 # notebook update
-POST    /notebook/update            controllers.NotebookController.update
+POST   /notebook/update       controllers.NotebookController.update
 # notebook delete
-POST    /notebook/remove:title      controllers.NotebookController.remove(title: String)
+POST   /notebook/remove:id    controllers.NotebookController.remove(id: Int)
